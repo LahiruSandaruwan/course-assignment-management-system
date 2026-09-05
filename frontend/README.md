@@ -1,5 +1,17 @@
-# Vue 3 + Vite
+# Course Assignment Management System — Frontend
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Vue 3 (Composition API, `<script setup>`) single-page app for the Course
+Assignment Management System, built with Vite, Vue Router, Pinia, and Axios.
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+See the [repository root README](../README.md) for full project setup,
+architecture, database design, and the assignment's technical write-up.
+
+## Quick start
+
+```bash
+npm install
+cp .env.example .env
+npm run dev      # http://localhost:5173
+npm run test     # Vitest
+npm run build    # production build to dist/
+```

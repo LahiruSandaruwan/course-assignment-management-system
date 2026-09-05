@@ -15,16 +15,55 @@
         
         <!-- Management Actions -->
         <div class="management-actions" v-if="canManage">
-          <button class="edit-btn">Edit Course</button>
-          <button class="archive-btn" v-if="course.status === 'active'">Archive</button>
+          <button class="edit-btn" :disabled="isEditing" @click="startEdit">Edit Course</button>
+          <button
+            class="archive-btn"
+            v-if="course.status === 'active'"
+            :disabled="isArchiving"
+            @click="archiveCourse"
+          >
+            {{ isArchiving ? 'Archiving...' : 'Archive' }}
+          </button>
         </div>
       </div>
+
+      <div v-if="archiveError" class="error-alert">{{ archiveError }}</div>
+
+      <form v-if="isEditing" class="edit-form" @submit.prevent="saveEdit">
+        <div v-if="editError" class="error-alert">{{ editError }}</div>
+
+        <div class="form-row">
+          <label for="edit-name">Name</label>
+          <input id="edit-name" v-model="editForm.name" required maxlength="255" :disabled="isSavingEdit" />
+        </div>
+
+        <div class="form-row">
+          <label for="edit-description">Description</label>
+          <textarea id="edit-description" v-model="editForm.description" :disabled="isSavingEdit"></textarea>
+        </div>
+
+        <div class="form-row form-row-inline">
+          <div>
+            <label for="edit-start">Start Date</label>
+            <input id="edit-start" type="date" v-model="editForm.start_date" required :disabled="isSavingEdit" />
+          </div>
+          <div>
+            <label for="edit-end">End Date</label>
+            <input id="edit-end" type="date" v-model="editForm.end_date" required :disabled="isSavingEdit" />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" :disabled="isSavingEdit">{{ isSavingEdit ? 'Saving...' : 'Save Changes' }}</button>
+          <button type="button" class="cancel-btn" :disabled="isSavingEdit" @click="cancelEdit">Cancel</button>
+        </div>
+      </form>
 
       <div class="course-meta">
         <p><strong>Instructor:</strong> {{ course.instructor_name || 'N/A' }}</p>
         <p><strong>Dates:</strong> {{ course.start_date }} to {{ course.end_date }}</p>
       </div>
-      
+
       <div class="course-description" v-if="course.description">
         <h3>Description</h3>
         <p>{{ course.description }}</p>
@@ -85,7 +124,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { courseService } from '../services/courseService';
@@ -186,6 +225,74 @@ const fetchStudents = async (page = 1) => {
   }
 };
 
+// Edit form state
+const isEditing = ref(false);
+const isSavingEdit = ref(false);
+const editError = ref(null);
+const editForm = reactive({ name: '', description: '', start_date: '', end_date: '' });
+
+const startEdit = () => {
+  if (!course.value) return;
+  editForm.name = course.value.name;
+  editForm.description = course.value.description || '';
+  editForm.start_date = course.value.start_date;
+  editForm.end_date = course.value.end_date;
+  editError.value = null;
+  isEditing.value = true;
+};
+
+const cancelEdit = () => {
+  isEditing.value = false;
+  editError.value = null;
+};
+
+const saveEdit = async () => {
+  if (isSavingEdit.value) return;
+  isSavingEdit.value = true;
+  editError.value = null;
+
+  try {
+    const response = await courseService.updateCourse(courseId, {
+      name: editForm.name,
+      description: editForm.description,
+      start_date: editForm.start_date,
+      end_date: editForm.end_date,
+    });
+    course.value = response.data.data;
+    isEditing.value = false;
+  } catch (err) {
+    const validationErrors = err.response?.data?.errors;
+    editError.value = validationErrors
+      ? Object.values(validationErrors).flat().join(' ')
+      : err.response?.data?.message || 'Failed to update course.';
+  } finally {
+    isSavingEdit.value = false;
+  }
+};
+
+// Archive action
+const isArchiving = ref(false);
+const archiveError = ref(null);
+
+const archiveCourse = async () => {
+  if (isArchiving.value) return;
+  if (!window.confirm('Archive this course? Students will no longer be able to submit new work.')) {
+    return;
+  }
+
+  isArchiving.value = true;
+  archiveError.value = null;
+
+  try {
+    const response = await courseService.updateCourse(courseId, { status: 'archived' });
+    course.value = response.data.data;
+  } catch (err) {
+    archiveError.value = err.response?.data?.message || 'Failed to archive course.';
+  } finally {
+    isArchiving.value = false;
+  }
+};
+
 onMounted(() => {
   fetchCourseDetails();
 });
@@ -263,6 +370,94 @@ onMounted(() => {
   color: #b91c1c;
 }
 .archive-btn:hover { background-color: #fecaca; }
+
+.error-alert {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+}
+
+.edit-form {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.edit-form .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.edit-form .form-row-inline {
+  flex-direction: row;
+  gap: 1.5rem;
+}
+
+.edit-form .form-row-inline > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.edit-form label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.edit-form input,
+.edit-form textarea {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.edit-form textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.form-actions button {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.form-actions button[type='submit'] {
+  background-color: #3b82f6;
+  border: 1px solid #3b82f6;
+  color: white;
+}
+
+.form-actions button[type='submit']:disabled,
+.management-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancel-btn {
+  background-color: white;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
 
 .course-meta {
   background-color: #f9fafb;

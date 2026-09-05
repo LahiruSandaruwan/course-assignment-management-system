@@ -16,9 +16,12 @@ class SubmissionController extends Controller
      */
     public function mySubmission(\App\Models\Assignment $assignment)
     {
-        // Must be a student and enrolled
-        if (request()->user()->role->value !== 'student' || !$assignment->course->students()->where('users.id', request()->user()->id)->exists()) {
-            return $this->error('Not authorized.', 403);
+        // Reuses AssignmentPolicy::view (published + enrolled) instead of
+        // duplicating that check here; "mine" is meaningful for students only.
+        $this->authorize('view', $assignment);
+
+        if (request()->user()->role !== \App\Enums\Role::Student) {
+            abort(403, 'Only students have a personal submission for an assignment.');
         }
 
         $submission = $assignment->submissions()->where('student_id', request()->user()->id)->first();
@@ -51,17 +54,18 @@ class SubmissionController extends Controller
     {
         $this->authorize('create', [\App\Models\Submission::class, $assignment]);
 
-        try {
-            $submission = $service->submit(
-                $assignment,
-                $request->user(),
-                $request->validated('submission_text')
-            );
+        // SubmissionService throws UnprocessableEntityHttpException for the
+        // "already graded" business rule, which Laravel's default handler
+        // renders as 422 on its own — no need to catch it here. Anything
+        // else (e.g. a genuine QueryException) is left to surface as a 500
+        // instead of being masked as a validation error.
+        $submission = $service->submit(
+            $assignment,
+            $request->user(),
+            $request->validated('submission_text')
+        );
 
-            return $this->success(new \App\Http\Resources\SubmissionResource($submission), 'Submission saved successfully', 200);
-        } catch (\Exception $e) {
-            return $this->error($e->getMessage(), 422);
-        }
+        return $this->success(new \App\Http\Resources\SubmissionResource($submission), 'Submission saved successfully', 200);
     }
 
     /**

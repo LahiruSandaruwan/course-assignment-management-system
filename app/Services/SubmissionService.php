@@ -7,6 +7,7 @@ use App\Models\Submission;
 use App\Models\User;
 use App\Enums\SubmissionStatus;
 use Illuminate\Database\QueryException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class SubmissionService
 {
@@ -17,7 +18,8 @@ class SubmissionService
      * @param User $student
      * @param string $text
      * @return Submission
-     * @throws \Exception
+     * @throws UnprocessableEntityHttpException if the submission has already been graded
+     * @throws QueryException on an unexpected (non-duplicate) database error
      */
     public function submit(Assignment $assignment, User $student, string $text): Submission
     {
@@ -28,7 +30,7 @@ class SubmissionService
 
         if ($existing) {
             if ($existing->status === SubmissionStatus::Graded) {
-                throw new \Exception('Cannot resubmit an assignment that has already been graded.');
+                throw new UnprocessableEntityHttpException('Cannot resubmit an assignment that has already been graded.');
             }
 
             $existing->update([
@@ -56,7 +58,7 @@ class SubmissionService
                     ->first();
 
                 if ($raced && $raced->status === SubmissionStatus::Graded) {
-                    throw new \Exception('Cannot resubmit an assignment that has already been graded.');
+                    throw new UnprocessableEntityHttpException('Cannot resubmit an assignment that has already been graded.');
                 }
 
                 if ($raced) {
