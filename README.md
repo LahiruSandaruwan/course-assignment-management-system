@@ -156,9 +156,10 @@ foreach ($courses as $course) {
 To support multiple notification channels (Email, Push, Microsoft Teams) without modifying `GradingController` or `GradingService`, the system leverages the **Observer Pattern** and **SOLID Open/Closed Principle**.
 
 1. **Event Dispatching**: Once grading successfully commits, `GradingService` simply fires a domain event: `event(new SubmissionGraded($submission));`. It doesn't know or care how notifications are sent.
-2. **Event Listeners**: A queued listener (`SendGradingNotification`) catches this event.
-3. **Notification Channels**: Laravel's robust Notification system resolves the `NotificationChannel` interface implementations. The notification class specifies the `via()` method, which maps out to Email, Push, and Teams channels.
-4. **Async Processing**: These API calls are dispatched as background jobs to queue workers, ensuring that slow third-party APIs (like Microsoft Teams) do not block the HTTP response sent back to the instructor.
+2. **Event Listeners**: A queued listener (`SendSubmissionGradedNotification`) catches this event. It implements `ShouldQueue` and `ShouldQueueAfterCommit`, so it only runs after the grading transaction has actually committed — a rolled-back grade can never trigger a notification.
+3. **Notification Channels via an Interface**: Rather than Laravel's built-in `Notification`/`via()` mechanism, this project defines its own `App\Notifications\Contracts\NotificationChannel` interface with a single method, `send(Submission $submission): void`. The listener resolves an implementation from the container (`app(NotificationChannel::class)`) instead of depending on a concrete class. Today, exactly one implementation exists — `LogNotificationChannel`, bound in `AppServiceProvider` — which simply logs the grading event as a stand-in for a real integration.
+4. **Adding Email, Push, and Teams**: Six months later, each new channel becomes its own class implementing `NotificationChannel` (e.g. `EmailNotificationChannel`, `PushNotificationChannel`, `TeamsNotificationChannel`), with no changes to `GradingService` or `GradingController`. To notify through multiple channels at once, the listener would depend on an array of `NotificationChannel` implementations (bound via a tagged container binding) and loop over them, rather than resolving a single instance.
+5. **Async Processing**: Because the listener is queued, slow third-party API calls (like Microsoft Teams) run in a background worker and never block the HTTP response sent back to the instructor.
 
 ---
 
