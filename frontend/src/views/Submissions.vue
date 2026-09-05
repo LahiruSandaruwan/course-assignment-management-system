@@ -187,8 +187,8 @@ const fetchSubmissions = async (page = currentPage.value) => {
   
   try {
     const response = await submissionService.listSubmissions(assignmentId, page);
-    submissions.value = response.data.data;
-    pagination.value = response.data.meta;
+    submissions.value = response.data.data.data;
+    pagination.value = response.data.data.meta;
     currentPage.value = page;
     
     // Initialize forms for each submission

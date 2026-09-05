@@ -1,56 +1,68 @@
 <template>
-  <div class="courses-container">
-    <div class="header-actions">
-      <h1>Courses</h1>
-      <button class="logout-btn" @click="handleLogout">Logout</button>
-    </div>
+  <div>
+    <AppHeader />
 
-    <LoadingState v-if="isLoading" message="Loading courses..." />
-    
-    <ErrorState v-else-if="error" :message="error" :retry="fetchCourses" />
-    
-    <div v-else-if="courses.length > 0">
-      <div class="course-grid">
-        <CourseCard 
-          v-for="course in courses" 
-          :key="course.id" 
-          :course="course" 
-        />
-      </div>
-      
-      <!-- Pagination -->
-      <div class="pagination" v-if="totalPages > 1">
-        <button 
-          :disabled="currentPage === 1" 
-          @click="fetchCourses(currentPage - 1)"
-        >
-          Previous
-        </button>
-        <span>Page {{ currentPage }} of {{ totalPages }}</span>
-        <button 
-          :disabled="currentPage === totalPages" 
-          @click="fetchCourses(currentPage + 1)"
-        >
-          Next
+    <div class="courses-container">
+      <div class="page-toolbar">
+        <h1>Courses</h1>
+        <button v-if="canCreateCourse" class="create-course-btn" @click="showCreateModal = true">
+          + Create Course
         </button>
       </div>
+
+      <CreateCourseModal
+        v-if="showCreateModal"
+        @close="showCreateModal = false"
+        @created="handleCourseCreated"
+      />
+
+      <LoadingState v-if="isLoading" message="Loading courses..." />
+
+      <ErrorState v-else-if="error" :message="error" :retry="fetchCourses" />
+
+      <div v-else-if="courses.length > 0">
+        <div class="course-grid">
+          <CourseCard
+            v-for="course in courses"
+            :key="course.id"
+            :course="course"
+          />
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" v-if="totalPages > 1">
+          <button
+            :disabled="currentPage === 1"
+            @click="fetchCourses(currentPage - 1)"
+          >
+            Previous
+          </button>
+          <span>Page {{ currentPage }} of {{ totalPages }}</span>
+          <button
+            :disabled="currentPage === totalPages"
+            @click="fetchCourses(currentPage + 1)"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
+      <EmptyState v-else message="You don't have any courses yet." />
     </div>
-    
-    <EmptyState v-else message="You don't have any courses yet." />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { courseService } from '../services/courseService';
+import AppHeader from '../components/AppHeader.vue';
+import CreateCourseModal from '../components/CreateCourseModal.vue';
 import CourseCard from '../components/CourseCard.vue';
 import LoadingState from '../components/LoadingState.vue';
 import ErrorState from '../components/ErrorState.vue';
 import EmptyState from '../components/EmptyState.vue';
 
-const router = useRouter();
 const authStore = useAuthStore();
 
 const courses = ref([]);
@@ -60,16 +72,27 @@ const error = ref(null);
 const currentPage = ref(1);
 const totalPages = ref(1);
 
+const showCreateModal = ref(false);
+const canCreateCourse = computed(() => ['admin', 'instructor'].includes(authStore.user?.role));
+
+const handleCourseCreated = () => {
+  showCreateModal.value = false;
+  fetchCourses(1);
+};
+
 const fetchCourses = async (page = 1) => {
   isLoading.value = true;
   error.value = null;
   
   try {
     const response = await courseService.getCourses(page);
-    courses.value = response.data.data;
-    
+    // The backend wraps every response as { message, data: {...} }, and a
+    // paginated list's own shape ({ data, links, meta }) sits inside that
+    // — so the actual rows are at response.data.data.data, not .data.data.
+    courses.value = response.data.data.data;
+
     // Setup pagination data
-    const meta = response.data.meta;
+    const meta = response.data.data.meta;
     if (meta) {
       currentPage.value = meta.current_page;
       totalPages.value = meta.last_page;
@@ -79,11 +102,6 @@ const fetchCourses = async (page = 1) => {
   } finally {
     isLoading.value = false;
   }
-};
-
-const handleLogout = async () => {
-  await authStore.logout();
-  router.push('/login');
 };
 
 onMounted(() => {
@@ -98,29 +116,30 @@ onMounted(() => {
   padding: 2rem;
 }
 
-.header-actions {
+.page-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
 }
 
-.header-actions h1 {
+.page-toolbar h1 {
   margin: 0;
   color: #111827;
 }
 
-.logout-btn {
-  background-color: #f3f4f6;
-  color: #4b5563;
-  border: 1px solid #d1d5db;
+.create-course-btn {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
   padding: 0.5rem 1rem;
   border-radius: 4px;
+  font-weight: 500;
   cursor: pointer;
 }
 
-.logout-btn:hover {
-  background-color: #e5e7eb;
+.create-course-btn:hover {
+  background-color: #2563eb;
 }
 
 .course-grid {

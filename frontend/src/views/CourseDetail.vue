@@ -186,9 +186,10 @@ const fetchAssignments = async (page = 1) => {
   
   try {
     const response = await courseService.getAssignments(courseId, page);
-    assignments.value = response.data.data;
-    
-    const meta = response.data.meta;
+    // See Courses.vue's fetchCourses for why this is data.data.data.
+    assignments.value = response.data.data.data;
+
+    const meta = response.data.data.meta;
     if (meta) {
       assignmentsPage.value = meta.current_page;
       assignmentsTotalPages.value = meta.last_page;
@@ -206,9 +207,9 @@ const fetchStudents = async (page = 1) => {
   
   try {
     const response = await courseService.getEnrolledStudents(courseId, page);
-    students.value = response.data.data;
-    
-    const meta = response.data.meta;
+    students.value = response.data.data.data;
+
+    const meta = response.data.data.meta;
     if (meta) {
       studentsPage.value = meta.current_page;
       studentsTotalPages.value = meta.last_page;

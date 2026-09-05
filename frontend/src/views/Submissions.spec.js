@@ -42,18 +42,23 @@ describe('Submissions.vue', () => {
       }
     });
 
+    // A paginated list is itself { data, links, meta } and the backend's
+    // ApiResponses trait wraps that again as { message, data: {...} } —
+    // so the rows live at response.data.data.data, not response.data.data.
     submissionService.listSubmissions.mockResolvedValueOnce({
       data: {
-        data: [
-          {
-            id: 1,
-            student: { name: 'Alice', email: 'alice@example.com' },
-            submission_text: 'Alice answer',
-            status: 'submitted',
-            submitted_at: '2026-10-01T12:00:00Z',
-          }
-        ],
-        meta: { last_page: 1 }
+        data: {
+          data: [
+            {
+              id: 1,
+              student: { name: 'Alice', email: 'alice@example.com' },
+              submission_text: 'Alice answer',
+              status: 'submitted',
+              submitted_at: '2026-10-01T12:00:00Z',
+            }
+          ],
+          meta: { last_page: 1 }
+        }
       }
     });
 

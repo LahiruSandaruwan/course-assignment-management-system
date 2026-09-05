@@ -18,6 +18,10 @@
           <span class="stat-label">Assignments</span>
         </div>
       </div>
+
+      <router-link :to="`/courses/${course.id}`" class="view-details-link" @click.stop>
+        View Details &rarr;
+      </router-link>
     </div>
   </div>
 </template>
@@ -99,5 +103,18 @@ defineProps({
   font-size: 0.75rem;
   color: #6b7280;
   text-transform: uppercase;
+}
+
+.view-details-link {
+  display: inline-block;
+  margin-top: 1rem;
+  color: #3b82f6;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.view-details-link:hover {
+  text-decoration: underline;
 }
 </style>
