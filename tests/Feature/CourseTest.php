@@ -34,6 +34,21 @@ it('allows instructor to create a course', function () {
         ->assertJsonPath('data.instructor_id', $instructor->id);
 });
 
+it('rejects assigning a non-instructor user as instructor_id', function () {
+    $admin = User::factory()->admin()->create();
+    $student = User::factory()->student()->create();
+
+    $response = $this->actingAs($admin)->postJson('/api/courses', [
+        'name' => 'Suspicious Course',
+        'start_date' => '2025-01-01',
+        'end_date' => '2025-12-31',
+        'instructor_id' => $student->id,
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['instructor_id']);
+});
+
 it('prevents student from creating a course', function () {
     $student = User::factory()->student()->create();
 

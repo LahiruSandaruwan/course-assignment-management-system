@@ -26,7 +26,12 @@ class StoreCourseRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'status' => ['nullable', \Illuminate\Validation\Rule::enum(\App\Enums\CourseStatus::class)],
-            'instructor_id' => ['nullable', 'exists:users,id'],
+            'instructor_id' => [
+                'nullable',
+                \Illuminate\Validation\Rule::exists('users', 'id')->where(
+                    fn ($query) => $query->where('role', \App\Enums\Role::Instructor->value)
+                ),
+            ],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
         ];

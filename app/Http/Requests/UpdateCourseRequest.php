@@ -26,7 +26,13 @@ class UpdateCourseRequest extends FormRequest
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'status' => ['sometimes', 'required', \Illuminate\Validation\Rule::enum(\App\Enums\CourseStatus::class)],
-            'instructor_id' => ['sometimes', 'required', 'exists:users,id'],
+            'instructor_id' => [
+                'sometimes',
+                'required',
+                \Illuminate\Validation\Rule::exists('users', 'id')->where(
+                    fn ($query) => $query->where('role', \App\Enums\Role::Instructor->value)
+                ),
+            ],
             'start_date' => ['sometimes', 'required', 'date'],
             'end_date' => ['sometimes', 'required', 'date', 'after_or_equal:start_date'],
         ];

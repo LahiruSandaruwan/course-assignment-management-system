@@ -67,3 +67,24 @@ it('allows an authenticated user to logout', function () {
 
     expect($user->tokens()->count())->toBe(0);
 });
+
+it('throttles repeated login attempts', function () {
+    $user = User::factory()->create([
+        'email' => 'throttle@example.com',
+        'password' => Hash::make('password123'),
+    ]);
+
+    for ($i = 0; $i < 5; $i++) {
+        $this->postJson('/api/login', [
+            'email' => 'throttle@example.com',
+            'password' => 'wrongpassword',
+        ])->assertStatus(401);
+    }
+
+    $response = $this->postJson('/api/login', [
+        'email' => 'throttle@example.com',
+        'password' => 'wrongpassword',
+    ]);
+
+    $response->assertStatus(429);
+});
