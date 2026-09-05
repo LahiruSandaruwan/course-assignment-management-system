@@ -19,10 +19,9 @@
           <button
             class="archive-btn"
             v-if="course.status === 'active'"
-            :disabled="isArchiving"
             @click="archiveCourse"
           >
-            {{ isArchiving ? 'Archiving...' : 'Archive' }}
+            Archive
           </button>
         </div>
       </div>
@@ -166,10 +165,9 @@
                 <button
                   v-if="canManage"
                   class="remove-student-btn"
-                  :disabled="isRemoving[student.id]"
                   @click="handleRemoveStudent(student)"
                 >
-                  {{ isRemoving[student.id] ? 'Removing...' : 'Remove' }}
+                  Remove
                 </button>
               </div>
 
@@ -185,6 +183,17 @@
         </div>
       </div>
     </div>
+
+    <ConfirmModal
+      :show="confirmModal.show"
+      :title="confirmModal.title"
+      :message="confirmModal.message"
+      :confirm-text="confirmModal.confirmText"
+      :is-destructive="confirmModal.isDestructive"
+      :is-loading="confirmModal.isLoading"
+      @confirm="handleConfirmAccept"
+      @cancel="closeConfirm"
+    />
   </div>
 </template>
 
@@ -198,6 +207,7 @@ import LoadingState from '../components/LoadingState.vue';
 import ErrorState from '../components/ErrorState.vue';
 import EmptyState from '../components/EmptyState.vue';
 import CreateAssignmentModal from '../components/CreateAssignmentModal.vue';
+import ConfirmModal from '../components/ConfirmModal.vue';
 
 const route = useRoute();
 const authStore = useAuthStore();
@@ -338,17 +348,42 @@ const saveEdit = async () => {
   }
 };
 
+// Shared confirmation modal, driven by whichever action opened it
+const confirmModal = reactive({
+  show: false,
+  title: '',
+  message: '',
+  confirmText: 'Confirm',
+  isDestructive: false,
+  isLoading: false,
+});
+let pendingConfirmAction = null;
+
+const openConfirm = (options, action) => {
+  Object.assign(confirmModal, { ...options, isLoading: false, show: true });
+  pendingConfirmAction = action;
+};
+
+const closeConfirm = () => {
+  confirmModal.show = false;
+  pendingConfirmAction = null;
+};
+
+const handleConfirmAccept = async () => {
+  if (!pendingConfirmAction) return;
+  confirmModal.isLoading = true;
+  try {
+    await pendingConfirmAction();
+  } finally {
+    confirmModal.isLoading = false;
+    closeConfirm();
+  }
+};
+
 // Archive action
-const isArchiving = ref(false);
 const archiveError = ref(null);
 
-const archiveCourse = async () => {
-  if (isArchiving.value) return;
-  if (!window.confirm('Archive this course? Students will no longer be able to submit new work.')) {
-    return;
-  }
-
-  isArchiving.value = true;
+const performArchive = async () => {
   archiveError.value = null;
 
   try {
@@ -356,9 +391,16 @@ const archiveCourse = async () => {
     course.value = response.data.data;
   } catch (err) {
     archiveError.value = err.response?.data?.message || 'Failed to archive course.';
-  } finally {
-    isArchiving.value = false;
   }
+};
+
+const archiveCourse = () => {
+  openConfirm({
+    title: 'Archive Course',
+    message: 'Archive this course? Students will no longer be able to submit new work.',
+    confirmText: 'Archive',
+    isDestructive: true,
+  }, performArchive);
 };
 
 // Assignment creation (Admin/Instructor only)
@@ -373,7 +415,6 @@ const handleAssignmentCreated = async () => {
 const showEnrollForm = ref(false);
 const isEnrolling = ref(false);
 const enrollError = ref(null);
-const isRemoving = reactive({});
 
 // Student search (name/email/ID) feeding the enroll form
 const studentQuery = ref('');
@@ -464,20 +505,22 @@ const handleEnroll = async () => {
   }
 };
 
-const handleRemoveStudent = async (student) => {
-  if (isRemoving[student.id]) return;
-  if (!window.confirm(`Remove ${student.name} from this course?`)) return;
-
-  isRemoving[student.id] = true;
-
+const performRemoveStudent = async (student) => {
   try {
     await courseService.removeStudent(courseId, student.id);
     await Promise.all([refreshCourse(), fetchStudents(studentsPage.value)]);
   } catch (err) {
     studentsError.value = err.response?.data?.message || 'Failed to remove student.';
-  } finally {
-    isRemoving[student.id] = false;
   }
+};
+
+const handleRemoveStudent = (student) => {
+  openConfirm({
+    title: 'Remove Student',
+    message: `Remove ${student.name} from this course?`,
+    confirmText: 'Remove',
+    isDestructive: true,
+  }, () => performRemoveStudent(student));
 };
 
 onMounted(() => {
