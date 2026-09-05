@@ -27,4 +27,26 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         });
+
+        // Route-model-binding failures (e.g. GET /assignments/999999) throw
+        // ModelNotFoundException, but Handler::prepareException() converts
+        // that to NotFoundHttpException — preserving the raw
+        // "No query results for model [App\Models\X] {id}" message, which
+        // leaks the internal model namespace — before any custom render()
+        // callback for ModelNotFoundException itself ever gets a chance to
+        // run. So this must target NotFoundHttpException and check its
+        // wrapped previous exception instead. Returning null here lets any
+        // other 404 (e.g. a route that doesn't exist at all) fall through
+        // to Laravel's normal handling, untouched.
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e) {
+            $previous = $e->getPrevious();
+
+            if ($previous instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                $model = class_basename($previous->getModel());
+
+                return response()->json(['message' => "{$model} not found."], 404);
+            }
+
+            return null;
+        });
     })->create();

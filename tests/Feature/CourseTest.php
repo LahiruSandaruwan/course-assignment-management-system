@@ -210,3 +210,12 @@ it('prevents instructor from updating someone elses course', function () {
 
     $response->assertStatus(403);
 });
+
+it('returns a clean 404 message for a nonexistent course, not the raw exception text', function () {
+    $admin = User::factory()->admin()->create();
+
+    $response = $this->actingAs($admin)->getJson('/api/courses/999999');
+
+    $response->assertStatus(404)
+        ->assertJsonPath('message', 'Course not found.');
+});

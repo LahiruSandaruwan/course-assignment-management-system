@@ -126,3 +126,12 @@ it('returns 422 for missing title, invalid due date, and max score < 1', functio
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['title', 'due_date', 'max_score']);
 });
+
+it('returns a clean 404 message for a nonexistent assignment, not the raw exception text', function () {
+    $instructor = User::factory()->instructor()->create();
+
+    $response = $this->actingAs($instructor)->getJson('/api/assignments/999999');
+
+    $response->assertStatus(404)
+        ->assertJsonPath('message', 'Assignment not found.');
+});
