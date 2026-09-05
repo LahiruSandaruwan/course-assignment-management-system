@@ -28,21 +28,21 @@ class SubmissionController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreSubmissionRequest $request, \App\Models\Assignment $assignment)
+    public function store(StoreSubmissionRequest $request, \App\Models\Assignment $assignment, \App\Services\SubmissionService $service)
     {
         $this->authorize('create', [\App\Models\Submission::class, $assignment]);
 
-        // upsert semantics per unique-constraint decision
-        $submission = $assignment->submissions()->updateOrCreate(
-            ['student_id' => $request->user()->id],
-            [
-                'submission_text' => $request->validated('submission_text'),
-                'submitted_at' => now(),
-                'status' => \App\Enums\SubmissionStatus::Submitted->value,
-            ]
-        );
+        try {
+            $submission = $service->submit(
+                $assignment,
+                $request->user(),
+                $request->validated('submission_text')
+            );
 
-        return $this->success(new \App\Http\Resources\SubmissionResource($submission), 'Submission saved successfully', 200); // 200 for upsert
+            return $this->success(new \App\Http\Resources\SubmissionResource($submission), 'Submission saved successfully', 200);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage(), 422);
+        }
     }
 
     /**

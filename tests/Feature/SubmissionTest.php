@@ -208,3 +208,42 @@ it('ignores malicious student_id in request body and uses authenticated user', f
         'student_id' => $victim->id, // Victim was protected
     ]);
 });
+
+it('prevents student from resubmitting an already graded assignment', function () {
+    $student = User::factory()->student()->create();
+    $course = Course::factory()->create();
+    $course->students()->attach($student->id);
+    $assignment = Assignment::factory()->create([
+        'course_id' => $course->id,
+        'status' => AssignmentStatus::Published,
+    ]);
+
+    Submission::factory()->create([
+        'assignment_id' => $assignment->id,
+        'student_id' => $student->id,
+        'status' => \App\Enums\SubmissionStatus::Graded,
+        'score' => 95,
+        'instructor_feedback' => 'Good job',
+    ]);
+
+    $response = $this->actingAs($student)->postJson("/api/assignments/{$assignment->id}/submissions", [
+        'submission_text' => 'Sneaky edit',
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonPath('message', 'Cannot resubmit an assignment that has already been graded.');
+});
+
+it('prevents students from accessing the submissions list endpoint', function () {
+    $student = User::factory()->student()->create();
+    $course = Course::factory()->create();
+    $course->students()->attach($student->id);
+    $assignment = Assignment::factory()->create([
+        'course_id' => $course->id,
+        'status' => AssignmentStatus::Published,
+    ]);
+
+    $response = $this->actingAs($student)->getJson("/api/assignments/{$assignment->id}/submissions");
+
+    $response->assertStatus(403);
+});
