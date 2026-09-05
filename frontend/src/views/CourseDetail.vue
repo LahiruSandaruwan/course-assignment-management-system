@@ -114,25 +114,42 @@
           <div class="section">
             <div class="section-header">
               <h3>Enrolled Students ({{ course.students_count || 0 }})</h3>
-              <button v-if="canManage" class="enroll-toggle-btn" @click="showEnrollForm = !showEnrollForm">
+              <button v-if="canManage" class="enroll-toggle-btn" @click="toggleEnrollForm">
                 {{ showEnrollForm ? 'Cancel' : '+ Enroll Student' }}
               </button>
             </div>
 
             <form v-if="canManage && showEnrollForm" class="enroll-form" @submit.prevent="handleEnroll">
               <div v-if="enrollError" class="error-alert">{{ enrollError }}</div>
-              <label for="enroll-user-id">Student User ID</label>
-              <div class="enroll-form-row">
+              <label for="enroll-search">Student (name, email, or ID)</label>
+              <div class="enroll-search-wrapper">
                 <input
-                  id="enroll-user-id"
-                  type="number"
-                  min="1"
-                  v-model="enrollUserId"
-                  placeholder="e.g. 3"
-                  required
+                  id="enroll-search"
+                  type="text"
+                  v-model="studentQuery"
+                  placeholder="Start typing a name, email, or ID..."
+                  autocomplete="off"
                   :disabled="isEnrolling"
+                  @input="onStudentQueryInput"
                 />
-                <button type="submit" :disabled="isEnrolling">
+
+                <ul v-if="studentQuery && !selectedStudent" class="student-search-results">
+                  <li v-if="isSearching" class="search-hint">Searching...</li>
+                  <li v-else-if="searchError" class="search-hint search-hint-error">{{ searchError }}</li>
+                  <li v-else-if="searchResults.length === 0" class="search-hint">No matching students found.</li>
+                  <li
+                    v-for="result in searchResults"
+                    :key="result.id"
+                    class="search-result-item"
+                    @click="selectStudent(result)"
+                  >
+                    [{{ result.id }}] {{ result.name }} ({{ result.email }})
+                  </li>
+                </ul>
+              </div>
+
+              <div class="enroll-form-row">
+                <button type="submit" :disabled="isEnrolling || !selectedStudent">
                   {{ isEnrolling ? 'Enrolling...' : 'Enroll' }}
                 </button>
               </div>
@@ -172,10 +189,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { courseService } from '../services/courseService';
+import { studentService } from '../services/studentService';
 import LoadingState from '../components/LoadingState.vue';
 import ErrorState from '../components/ErrorState.vue';
 import EmptyState from '../components/EmptyState.vue';
@@ -353,10 +371,70 @@ const handleAssignmentCreated = async () => {
 
 // Enrollment management (Admin/Instructor only)
 const showEnrollForm = ref(false);
-const enrollUserId = ref('');
 const isEnrolling = ref(false);
 const enrollError = ref(null);
 const isRemoving = reactive({});
+
+// Student search (name/email/ID) feeding the enroll form
+const studentQuery = ref('');
+const selectedStudent = ref(null);
+const searchResults = ref([]);
+const isSearching = ref(false);
+const searchError = ref(null);
+let searchDebounceTimer = null;
+
+const runStudentSearch = async (query) => {
+  isSearching.value = true;
+  searchError.value = null;
+
+  try {
+    const response = await studentService.search(query);
+    // Deliberately unpaginated on the backend, so this is a plain array —
+    // not the response.data.data.data pattern paginated endpoints use.
+    searchResults.value = response.data.data;
+  } catch (err) {
+    searchResults.value = [];
+    searchError.value = err.response?.data?.message || 'Failed to search students.';
+  } finally {
+    isSearching.value = false;
+  }
+};
+
+const onStudentQueryInput = () => {
+  selectedStudent.value = null;
+  clearTimeout(searchDebounceTimer);
+
+  const query = studentQuery.value.trim();
+  if (!query) {
+    searchResults.value = [];
+    isSearching.value = false;
+    return;
+  }
+
+  searchDebounceTimer = setTimeout(() => runStudentSearch(query), 300);
+};
+
+const selectStudent = (student) => {
+  selectedStudent.value = student;
+  studentQuery.value = `${student.name} (${student.email})`;
+  searchResults.value = [];
+};
+
+const resetEnrollForm = () => {
+  studentQuery.value = '';
+  selectedStudent.value = null;
+  searchResults.value = [];
+  enrollError.value = null;
+  showEnrollForm.value = false;
+};
+
+const toggleEnrollForm = () => {
+  if (showEnrollForm.value) {
+    resetEnrollForm();
+  } else {
+    showEnrollForm.value = true;
+  }
+};
 
 const refreshCourse = async () => {
   try {
@@ -368,14 +446,13 @@ const refreshCourse = async () => {
 };
 
 const handleEnroll = async () => {
-  if (isEnrolling.value) return;
+  if (isEnrolling.value || !selectedStudent.value) return;
   isEnrolling.value = true;
   enrollError.value = null;
 
   try {
-    await courseService.enrollStudent(courseId, enrollUserId.value);
-    enrollUserId.value = '';
-    showEnrollForm.value = false;
+    await courseService.enrollStudent(courseId, selectedStudent.value.id);
+    resetEnrollForm();
     await Promise.all([refreshCourse(), fetchStudents(studentsPage.value)]);
   } catch (err) {
     const validationErrors = err.response?.data?.errors;
@@ -405,6 +482,10 @@ const handleRemoveStudent = async (student) => {
 
 onMounted(() => {
   fetchCourseDetails();
+});
+
+onUnmounted(() => {
+  clearTimeout(searchDebounceTimer);
 });
 </script>
 
@@ -660,17 +741,66 @@ onMounted(() => {
   margin-bottom: 0.375rem;
 }
 
-.enroll-form-row {
-  display: flex;
-  gap: 0.5rem;
+.enroll-search-wrapper {
+  position: relative;
+  margin-bottom: 0.75rem;
 }
 
-.enroll-form-row input {
-  flex: 1;
+.enroll-search-wrapper input {
+  width: 100%;
   padding: 0.4rem 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 4px;
   font-size: 0.875rem;
+  box-sizing: border-box;
+}
+
+.enroll-search-wrapper input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.student-search-results {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  max-height: 200px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+}
+
+.search-result-item {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.search-result-item:hover {
+  background-color: #eff6ff;
+}
+
+.search-hint {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.search-hint-error {
+  color: #b91c1c;
+}
+
+.enroll-form-row {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .enroll-form-row button {

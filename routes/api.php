@@ -9,6 +9,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
 
+    Route::get('/students/search', [\App\Http\Controllers\StudentSearchController::class, 'index']);
+
     Route::apiResource('courses', CourseController::class);
     
     // Enrollment routes
