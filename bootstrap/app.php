@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Support\Facades\Log;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -48,5 +49,23 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return null;
+        });
+
+        // AuthorizationException (every $this->authorize() denial) is in
+        // Laravel's internal "don't report" list by default, so a plain
+        // report() callback for it would never fire — stopIgnoring() is
+        // required to make it reportable before registering the callback.
+        // Returning false from the callback stops it from also falling
+        // through to the default logger, so each denial logs exactly once.
+        $exceptions->stopIgnoring(\Illuminate\Auth\Access\AuthorizationException::class);
+
+        $exceptions->report(function (\Illuminate\Auth\Access\AuthorizationException $e) {
+            Log::warning('Authorization denied', [
+                'user_id' => auth()->id(),
+                'path' => request()->path(),
+                'message' => $e->getMessage(),
+            ]);
+
+            return false;
         });
     })->create();

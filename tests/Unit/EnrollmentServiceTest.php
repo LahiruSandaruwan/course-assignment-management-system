@@ -9,13 +9,14 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 beforeEach(function () {
     $this->service = new EnrollmentService();
+    $this->actor = User::factory()->admin()->create();
 });
 
 it('enrolls a student in a course', function () {
     $course = Course::factory()->create();
     $student = User::factory()->student()->create();
 
-    $this->service->enrollStudent($course, $student);
+    $this->service->enrollStudent($course, $student, $this->actor);
 
     expect($course->students()->where('user_id', $student->id)->exists())->toBeTrue();
 });
@@ -25,7 +26,7 @@ it('rejects enrolling a student who is already enrolled', function () {
     $student = User::factory()->student()->create();
     $course->students()->attach($student->id);
 
-    expect(fn () => $this->service->enrollStudent($course, $student))
+    expect(fn () => $this->service->enrollStudent($course, $student, $this->actor))
         ->toThrow(ConflictHttpException::class, 'Student is already enrolled in this course.');
 });
 
@@ -48,7 +49,7 @@ it('converts a DB-level unique constraint race into a clean 409 conflict', funct
     ));
     $courseMock->shouldReceive('students')->andReturn($studentsRelation);
 
-    expect(fn () => $this->service->enrollStudent($courseMock, $student))
+    expect(fn () => $this->service->enrollStudent($courseMock, $student, $this->actor))
         ->toThrow(ConflictHttpException::class, 'Student is already enrolled in this course.');
 });
 
@@ -67,7 +68,7 @@ it('lets an unrelated database error propagate instead of being swallowed as a c
     ));
     $courseMock->shouldReceive('students')->andReturn($studentsRelation);
 
-    expect(fn () => $this->service->enrollStudent($courseMock, $student))
+    expect(fn () => $this->service->enrollStudent($courseMock, $student, $this->actor))
         ->toThrow(QueryException::class);
 });
 
@@ -76,7 +77,7 @@ it('removes an enrolled student from a course', function () {
     $student = User::factory()->student()->create();
     $course->students()->attach($student->id);
 
-    $this->service->removeStudent($course, $student);
+    $this->service->removeStudent($course, $student, $this->actor);
 
     expect($course->students()->where('user_id', $student->id)->exists())->toBeFalse();
 });
@@ -85,7 +86,7 @@ it('is idempotent when removing a student who was never enrolled', function () {
     $course = Course::factory()->create();
     $student = User::factory()->student()->create();
 
-    $this->service->removeStudent($course, $student);
+    $this->service->removeStudent($course, $student, $this->actor);
 
     expect($course->students()->where('user_id', $student->id)->exists())->toBeFalse();
 });

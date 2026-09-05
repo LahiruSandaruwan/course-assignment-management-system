@@ -6,6 +6,7 @@ use App\Models\Submission;
 use App\Enums\SubmissionStatus;
 use App\Events\SubmissionGraded;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class GradingService
@@ -40,6 +41,13 @@ class GradingService
                 'score' => $score,
                 'instructor_feedback' => $feedback,
                 'status' => SubmissionStatus::Graded->value,
+            ]);
+
+            Log::info('Submission graded', [
+                'submission_id' => $lockedSubmission->id,
+                'assignment_id' => $lockedSubmission->assignment_id,
+                'student_id' => $lockedSubmission->student_id,
+                'score' => $score,
             ]);
 
             // Dispatch event which triggers notifications

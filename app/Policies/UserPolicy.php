@@ -46,4 +46,12 @@ class UserPolicy
     {
         return $user->role === Role::Admin;
     }
+
+    /**
+     * Determine whether the user can search the student directory.
+     */
+    public function search(User $user): bool
+    {
+        return in_array($user->role, [Role::Admin, Role::Instructor], true);
+    }
 }

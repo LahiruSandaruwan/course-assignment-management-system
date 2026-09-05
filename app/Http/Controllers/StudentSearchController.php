@@ -8,10 +8,11 @@ use App\Models\User;
 use App\Traits\ApiResponses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class StudentSearchController extends Controller
 {
-    use ApiResponses;
+    use ApiResponses, AuthorizesRequests;
 
     /**
      * Search students by name, email, or exact ID for enrollment pickers.
@@ -20,9 +21,7 @@ class StudentSearchController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        if (! in_array($request->user()->role, [Role::Admin, Role::Instructor], true)) {
-            abort(403, 'Only instructors and admins can search students.');
-        }
+        $this->authorize('search', User::class);
 
         $query = trim((string) $request->query('q', ''));
 

@@ -121,8 +121,8 @@ it('handles DB-level unique constraint violation securely', function () {
     $studentsRelMock->shouldReceive('attach')->andThrow($exception);
     $courseMock->shouldReceive('students')->andReturn($studentsRelMock);
 
-    expect(function () use ($service, $courseMock, $student) {
-        $service->enrollStudent($courseMock, $student);
+    expect(function () use ($service, $courseMock, $student, $admin) {
+        $service->enrollStudent($courseMock, $student, $admin);
     })->toThrow(\Symfony\Component\HttpKernel\Exception\ConflictHttpException::class, 'Student is already enrolled in this course.');
 });
 

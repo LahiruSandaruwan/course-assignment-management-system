@@ -40,8 +40,8 @@ class CourseStudentController extends Controller
         $this->authorize('enroll', $course);
 
         $student = User::find($request->user_id);
-        
-        $this->enrollmentService->enrollStudent($course, $student);
+
+        $this->enrollmentService->enrollStudent($course, $student, $request->user());
 
         return $this->success(null, 'Student enrolled successfully', 201);
     }
@@ -53,7 +53,7 @@ class CourseStudentController extends Controller
     {
         $this->authorize('enroll', $course); // Same permission logic applies for removal
 
-        $this->enrollmentService->removeStudent($course, $student);
+        $this->enrollmentService->removeStudent($course, $student, $request->user());
 
         return $this->success(null, 'Student removed successfully');
     }
