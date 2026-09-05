@@ -22,4 +22,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/assignments/{assignment}', [\App\Http\Controllers\AssignmentController::class, 'show']);
     Route::put('/assignments/{assignment}', [\App\Http\Controllers\AssignmentController::class, 'update']);
     Route::delete('/assignments/{assignment}', [\App\Http\Controllers\AssignmentController::class, 'destroy']);
+
+    // Submission routes
+    Route::get('/assignments/{assignment}/submissions', [\App\Http\Controllers\SubmissionController::class, 'index']);
+    Route::post('/assignments/{assignment}/submissions', [\App\Http\Controllers\SubmissionController::class, 'store']);
+    Route::get('/submissions/{submission}', [\App\Http\Controllers\SubmissionController::class, 'show']);
 });

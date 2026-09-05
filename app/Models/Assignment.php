@@ -37,4 +37,12 @@ class Assignment extends Model
     {
         return $this->belongsTo(Course::class);
     }
+
+    /**
+     * Get the submissions for the assignment.
+     */
+    public function submissions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Submission::class);
+    }
 }
