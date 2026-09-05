@@ -73,7 +73,20 @@
         <div class="tab-contents">
           <!-- Assignments Section -->
           <div class="section">
-            <h3>Assignments ({{ course.assignments_count || 0 }})</h3>
+            <div class="section-header">
+              <h3>Assignments ({{ course.assignments_count || 0 }})</h3>
+              <button v-if="canManage" class="enroll-toggle-btn" @click="showCreateAssignmentModal = true">
+                + Create Assignment
+              </button>
+            </div>
+
+            <CreateAssignmentModal
+              v-if="showCreateAssignmentModal"
+              :course-id="courseId"
+              @close="showCreateAssignmentModal = false"
+              @created="handleAssignmentCreated"
+            />
+
             <LoadingState v-if="isLoadingAssignments" message="Loading assignments..." />
             <ErrorState v-else-if="assignmentsError" :message="assignmentsError" :retry="fetchAssignments" />
             <div v-else-if="assignments.length > 0" class="list-group">
@@ -166,6 +179,7 @@ import { courseService } from '../services/courseService';
 import LoadingState from '../components/LoadingState.vue';
 import ErrorState from '../components/ErrorState.vue';
 import EmptyState from '../components/EmptyState.vue';
+import CreateAssignmentModal from '../components/CreateAssignmentModal.vue';
 
 const route = useRoute();
 const authStore = useAuthStore();
@@ -327,6 +341,14 @@ const archiveCourse = async () => {
   } finally {
     isArchiving.value = false;
   }
+};
+
+// Assignment creation (Admin/Instructor only)
+const showCreateAssignmentModal = ref(false);
+
+const handleAssignmentCreated = async () => {
+  showCreateAssignmentModal.value = false;
+  await Promise.all([refreshCourse(), fetchAssignments(1)]);
 };
 
 // Enrollment management (Admin/Instructor only)
