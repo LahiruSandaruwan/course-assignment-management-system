@@ -41,6 +41,11 @@ class AssignmentPolicy
             return $user->id === $course->instructor_id;
         }
 
+        // Student logic: must be enrolled AND assignment must be published
+        if ($assignment->status !== \App\Enums\AssignmentStatus::Published) {
+            return false;
+        }
+
         return $course->students()->where('user_id', $user->id)->exists();
     }
 

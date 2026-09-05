@@ -56,19 +56,35 @@ it('allows instructor to update assignment in their own course', function () {
         ->assertJsonPath('data.title', 'Updated Title');
 });
 
-it('allows enrolled student to view an assignment', function () {
+it('allows enrolled student to view a published assignment', function () {
     $student = User::factory()->student()->create();
     $course = Course::factory()->create();
     $course->students()->attach($student->id);
     
     $assignment = Assignment::factory()->create([
         'course_id' => $course->id,
+        'status' => AssignmentStatus::Published,
     ]);
 
     $response = $this->actingAs($student)->getJson("/api/assignments/{$assignment->id}");
 
     $response->assertStatus(200)
         ->assertJsonPath('data.id', $assignment->id);
+});
+
+it('prevents enrolled student from viewing a draft assignment', function () {
+    $student = User::factory()->student()->create();
+    $course = Course::factory()->create();
+    $course->students()->attach($student->id);
+    
+    $assignment = Assignment::factory()->create([
+        'course_id' => $course->id,
+        'status' => AssignmentStatus::Draft,
+    ]);
+
+    $response = $this->actingAs($student)->getJson("/api/assignments/{$assignment->id}");
+
+    $response->assertStatus(403);
 });
 
 it('prevents non-enrolled student from viewing an assignment', function () {
