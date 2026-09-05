@@ -79,4 +79,20 @@ class CoursePolicy
     {
         return $user->role === \App\Enums\Role::Admin;
     }
+
+    /**
+     * Determine whether the user can enroll students in the course.
+     */
+    public function enroll(User $user, Course $course): bool
+    {
+        if ($user->role === \App\Enums\Role::Admin) {
+            return true;
+        }
+
+        if ($user->role === \App\Enums\Role::Instructor) {
+            return $user->id === $course->instructor_id;
+        }
+
+        return false;
+    }
 }

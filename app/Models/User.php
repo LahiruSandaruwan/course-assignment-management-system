@@ -49,4 +49,12 @@ class User extends Authenticatable
             'role' => \App\Enums\Role::class,
         ];
     }
+
+    /**
+     * Get the courses the user is enrolled in.
+     */
+    public function courses(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Course::class, 'course_user')->withTimestamps();
+    }
 }

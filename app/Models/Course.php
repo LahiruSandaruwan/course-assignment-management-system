@@ -4,8 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 class Course extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'name',
         'description',
@@ -31,5 +34,13 @@ class Course extends Model
     public function instructor(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'instructor_id');
+    }
+
+    /**
+     * Get the students enrolled in the course.
+     */
+    public function students(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'course_user')->withTimestamps();
     }
 }

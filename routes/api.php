@@ -10,4 +10,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
 
     Route::apiResource('courses', CourseController::class);
+    
+    // Enrollment routes
+    Route::get('/courses/{course}/students', [\App\Http\Controllers\CourseStudentController::class, 'index']);
+    Route::post('/courses/{course}/students', [\App\Http\Controllers\CourseStudentController::class, 'store']);
+    Route::delete('/courses/{course}/students/{student}', [\App\Http\Controllers\CourseStudentController::class, 'destroy']);
 });
