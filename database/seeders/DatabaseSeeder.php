@@ -15,19 +15,37 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::factory()->admin()->create([
+        $admin = User::factory()->admin()->create([
             'name' => 'Admin User',
             'email' => 'admin@example.com',
         ]);
 
-        User::factory()->instructor()->create([
+        $instructor = User::factory()->instructor()->create([
             'name' => 'Instructor User',
             'email' => 'instructor@example.com',
         ]);
 
-        User::factory()->student()->create([
+        $student = User::factory()->student()->create([
             'name' => 'Student User',
             'email' => 'student@example.com',
+        ]);
+
+        // Create a dummy course for the instructor
+        $course = \App\Models\Course::factory()->create([
+            'instructor_id' => $instructor->id,
+            'name' => 'Advanced Vue.js and Laravel',
+            'status' => 'active',
+        ]);
+
+        // Enroll the student in the course
+        $course->students()->attach($student->id);
+
+        // Create an assignment for the course
+        $assignment = \App\Models\Assignment::factory()->create([
+            'course_id' => $course->id,
+            'title' => 'Build a Fullstack App',
+            'status' => 'published',
+            'max_score' => 100,
         ]);
     }
 }
