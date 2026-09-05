@@ -54,4 +54,24 @@ class SubmissionController extends Controller
 
         return $this->success(new \App\Http\Resources\SubmissionResource($submission));
     }
+
+    /**
+     * Grade the specified submission.
+     */
+    public function grade(\App\Http\Requests\GradeSubmissionRequest $request, \App\Models\Submission $submission, \App\Services\GradingService $service)
+    {
+        $this->authorize('grade', $submission);
+
+        try {
+            $submission = $service->grade(
+                $submission,
+                $request->validated('score'),
+                $request->validated('instructor_feedback')
+            );
+
+            return $this->success(new \App\Http\Resources\SubmissionResource($submission), 'Submission graded successfully', 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return $this->error($e->getMessage(), 422, $e->errors());
+        }
+    }
 }

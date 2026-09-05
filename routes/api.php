@@ -27,4 +27,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/assignments/{assignment}/submissions', [\App\Http\Controllers\SubmissionController::class, 'index']);
     Route::post('/assignments/{assignment}/submissions', [\App\Http\Controllers\SubmissionController::class, 'store']);
     Route::get('/submissions/{submission}', [\App\Http\Controllers\SubmissionController::class, 'show']);
+    Route::put('/submissions/{submission}/grade', [\App\Http\Controllers\SubmissionController::class, 'grade']);
 });

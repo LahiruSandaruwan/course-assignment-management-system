@@ -65,6 +65,22 @@ class SubmissionPolicy
     }
 
     /**
+     * Determine whether the user can grade the submission.
+     */
+    public function grade(User $user, Submission $submission): bool
+    {
+        if ($user->role === \App\Enums\Role::Admin) {
+            return true;
+        }
+
+        if ($user->role === \App\Enums\Role::Instructor) {
+            return $user->id === $submission->assignment->course->instructor_id;
+        }
+
+        return false;
+    }
+
+    /**
      * Determine whether the user can update the model.
      */
     public function update(User $user, Submission $submission): bool
