@@ -170,6 +170,12 @@ To support multiple notification channels (Email, Push, Microsoft Teams) without
 - **Frontend Authentication**: Opted for a token-based (Bearer) mechanism persisted in `localStorage`. While Laravel Sanctum's stateful cookie approach provides superior XSS protection, the Bearer token approach eliminated CORS friction between decoupled local dev servers (`localhost:5173` vs `localhost:8000`), suiting the immediate scope of this assignment.
 - **Git branching strategy**: This project used a trunk-based, linear commit history directly on `master` rather than feature branches. As a solo take-home assignment with no concurrent contributors, branches would have added process overhead without their usual benefit (isolating in-progress work from teammates), so the priority was a clear, atomic, easy-to-review commit-by-commit progression instead. In a team environment, this would switch to a feature-branch workflow (e.g. GitHub Flow: a short-lived branch per feature/fix, merged via pull request with review) to protect `main` and enable parallel work.
 
+### Known Limitations
+- No CI/CD pipeline configured (local verification via Pest and Vitest).
+- JavaScript/Vue without TypeScript.
+- Notification system uses a single Log-based reference channel (Email/Push/Teams are architectural demonstrations via the interface).
+- True multi-threaded HTTP concurrency cannot be executed in synchronous Pest test runs (addressed via pessimistic database locking and unique constraint transaction handling).
+
 ### Future Improvements
 Given more time, the system would benefit from:
 - **Redis Queue Workers**: Transitioning from synchronous or database queues to Redis for highly performant, distributed background job processing.
