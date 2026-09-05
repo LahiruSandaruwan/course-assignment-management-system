@@ -191,13 +191,24 @@ The backend exposes a RESTful API heavily protected by Laravel Sanctum token aut
 
 ### Key Endpoints:
 - `POST /api/login` - Authenticates user and returns Bearer token.
+- `POST /api/logout` - Revokes the current access token.
 - `GET /api/me` - Returns the authenticated user's profile and role.
 - `GET /api/courses` - Returns a paginated list of courses (filtered by active status for students, or ownership for instructors).
+- `POST /api/courses` - Creates a course (Admin/Instructor only).
 - `GET /api/courses/{course}` - Returns detailed course information.
-- `GET /api/courses/{course}/assignments` - Returns assignments for a specific course.
+- `PUT /api/courses/{course}` - Updates a course, e.g. edit details or archive (owning Instructor/Admin only).
+- `DELETE /api/courses/{course}` - Deletes a course (owning Instructor/Admin only).
 - `GET /api/courses/{course}/students` - Returns enrolled students (Instructor/Admin only).
+- `POST /api/courses/{course}/students` - Enrolls a student in the course (owning Instructor/Admin only).
+- `DELETE /api/courses/{course}/students/{student}` - Removes a student from the course (owning Instructor/Admin only).
+- `GET /api/courses/{course}/assignments` - Returns assignments for a specific course.
+- `POST /api/courses/{course}/assignments` - Creates an assignment within the course (owning Instructor/Admin only).
 - `GET /api/assignments/{assignment}` - Returns assignment details.
-- `GET /api/assignments/{assignment}/my-submission` - Returns the authenticated student's submission for the assignment.
+- `PUT /api/assignments/{assignment}` - Updates an assignment (owning Instructor/Admin only).
+- `DELETE /api/assignments/{assignment}` - Deletes an assignment (owning Instructor/Admin only).
+- `GET /api/assignments/{assignment}/submissions/mine` - Returns the authenticated student's own submission for the assignment.
 - `POST /api/assignments/{assignment}/submissions` - Creates or updates a student's submission (Upsert logic).
 - `GET /api/assignments/{assignment}/submissions` - Returns a paginated list of all submissions (Instructor/Admin only).
+- `GET /api/submissions/{submission}` - Returns a single submission (the owning student, or the owning Instructor/Admin only — the IDOR boundary).
 - `PUT /api/submissions/{submission}/grade` - Submits a grade and feedback (Instructor/Admin only), utilizing pessimistic locking.
+- `GET /api/students/search` - Searches students by name, email, or ID for the enrollment picker (Admin/Instructor only).
