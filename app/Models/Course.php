@@ -43,4 +43,12 @@ class Course extends Model
     {
         return $this->belongsToMany(User::class, 'course_user')->withTimestamps();
     }
+
+    /**
+     * Get the assignments for the course.
+     */
+    public function assignments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Assignment::class);
+    }
 }
