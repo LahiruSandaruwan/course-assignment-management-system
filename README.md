@@ -170,6 +170,9 @@ To support multiple notification channels (Email, Push, Microsoft Teams) without
 - **Frontend Authentication**: Opted for a token-based (Bearer) mechanism persisted in `localStorage`. While Laravel Sanctum's stateful cookie approach provides superior XSS protection, the Bearer token approach eliminated CORS friction between decoupled local dev servers (`localhost:5173` vs `localhost:8000`), suiting the immediate scope of this assignment.
 - **Git branching strategy**: This project used a trunk-based, linear commit history directly on `master` rather than feature branches. As a solo take-home assignment with no concurrent contributors, branches would have added process overhead without their usual benefit (isolating in-progress work from teammates), so the priority was a clear, atomic, easy-to-review commit-by-commit progression instead. In a team environment, this would switch to a feature-branch workflow (e.g. GitHub Flow: a short-lived branch per feature/fix, merged via pull request with review) to protect `main` and enable parallel work.
 
+### Prioritization Rationale
+Within the timebox, priority went to properties that are hard to retrofit and directly determine whether the application is *correct*, not just complete: core architectural integrity (thin controllers, a real Service layer), security (IDOR prevention, Policy enforcement on every model-touching action, input validation with role-scoped `exists` checks), data consistency (pessimistic locking + `DB::transaction()` on grading, unique-constraint-backed race handling on enrollment/submission), and performance (N+1 elimination, proven with a query-count test rather than asserted). Those four areas alone account for 65% of the spec's own evaluation weighting (Laravel/PHP 20% + Architecture 20% + DB/Performance 15% + Security 10%). The items below — Docker, OpenAPI/Swagger, Redis, a CI pipeline — are valuable, but they're additive infrastructure: a reviewer running `php artisan test` and `npm run test` today gets a correct, secure, race-safe application either way. Retrofitting a missing Policy check or a missing DB index later is a much larger, riskier change than adding a `docker-compose.yml` once the underlying application is already right.
+
 ### Known Limitations
 - No CI/CD pipeline configured (local verification via Pest and Vitest).
 - JavaScript/Vue without TypeScript.
@@ -178,10 +181,10 @@ To support multiple notification channels (Email, Push, Microsoft Teams) without
 
 ### Future Improvements
 Given more time, the system would benefit from:
-- **Redis Queue Workers**: Transitioning from synchronous or database queues to Redis for highly performant, distributed background job processing.
-- **Dockerization**: A complete `docker-compose.yml` to standardize the PHP/Node/MySQL environments across all developer machines.
-- **OpenAPI/Swagger Specs**: Auto-generated API documentation for easier third-party integration and frontend developer reference.
-- **Audit Logging**: A robust activity log tracking every role change, grading adjustment, and enrollment event for strict institutional compliance.
+- **Redis Queue Workers**: The listener layer already implements `ShouldQueue`/`ShouldQueueAfterCommit`, so this is a configuration change, not an application-code change — swap `QUEUE_CONNECTION=database` for `redis` in `.env`, add the Redis driver, and run `php artisan queue:work`. The payoff is a queue that survives high write volume without contending with the application's own database connections.
+- **Dockerization**: A `docker-compose.yml` with a `php-fpm` + `nginx` (or `php artisan serve`) service for the API, a `mysql` service seeded from the existing migrations, and a `node` service running the Vite dev server — wired together with the same `DB_HOST`/`VITE_API_BASE_URL` values already in `.env.example`/`frontend/.env.example`, so no application config changes, only environment wiring.
+- **OpenAPI/Swagger Specs**: Generated via `l5-swagger` (or a hand-written spec) derived from the existing Form Request rule arrays and API Resource shapes, which already describe the exact contract — the spec would document, not redesign, the current API.
+- **Audit Logging**: A generic `activity_log` table (actor, action, subject type/id, changes, timestamp) populated via model observers on `Course`/`Assignment`/`Submission`, or by listening to the same `SubmissionGraded`-style event pattern already used for grading — reusing the Events/Listeners architecture already in place rather than introducing a new one.
 
 ---
 
