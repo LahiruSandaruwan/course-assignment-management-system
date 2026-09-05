@@ -176,3 +176,22 @@ Given more time, the system would benefit from:
 - **Dockerization**: A complete `docker-compose.yml` to standardize the PHP/Node/MySQL environments across all developer machines.
 - **OpenAPI/Swagger Specs**: Auto-generated API documentation for easier third-party integration and frontend developer reference.
 - **Audit Logging**: A robust activity log tracking every role change, grading adjustment, and enrollment event for strict institutional compliance.
+
+---
+
+## 8. API Overview
+
+The backend exposes a RESTful API heavily protected by Laravel Sanctum token authentication. 
+
+### Key Endpoints:
+- `POST /api/login` - Authenticates user and returns Bearer token.
+- `GET /api/me` - Returns the authenticated user's profile and role.
+- `GET /api/courses` - Returns a paginated list of courses (filtered by active status for students, or ownership for instructors).
+- `GET /api/courses/{course}` - Returns detailed course information.
+- `GET /api/courses/{course}/assignments` - Returns assignments for a specific course.
+- `GET /api/courses/{course}/students` - Returns enrolled students (Instructor/Admin only).
+- `GET /api/assignments/{assignment}` - Returns assignment details.
+- `GET /api/assignments/{assignment}/my-submission` - Returns the authenticated student's submission for the assignment.
+- `POST /api/assignments/{assignment}/submissions` - Creates or updates a student's submission (Upsert logic).
+- `GET /api/assignments/{assignment}/submissions` - Returns a paginated list of all submissions (Instructor/Admin only).
+- `PUT /api/submissions/{submission}/grade` - Submits a grade and feedback (Instructor/Admin only), utilizing pessimistic locking.
