@@ -69,7 +69,7 @@ it('allows admin to view all courses', function () {
     $response = $this->actingAs($admin)->getJson('/api/courses');
     
     $response->assertStatus(200)
-        ->assertJsonCount(2, 'data');
+        ->assertJsonCount(2, 'data.data');
 });
 
 it('restricts instructor to view only their own courses', function () {
@@ -95,8 +95,8 @@ it('restricts instructor to view only their own courses', function () {
     $response = $this->actingAs($instructor1)->getJson('/api/courses');
     
     $response->assertStatus(200)
-        ->assertJsonCount(1, 'data')
-        ->assertJsonPath('data.0.name', 'Course 1');
+        ->assertJsonCount(1, 'data.data')
+        ->assertJsonPath('data.data.0.name', 'Course 1');
 });
 
 it('restricts student to view only active courses', function () {
@@ -122,8 +122,8 @@ it('restricts student to view only active courses', function () {
     $response = $this->actingAs($student)->getJson('/api/courses');
     
     $response->assertStatus(200)
-        ->assertJsonCount(1, 'data')
-        ->assertJsonPath('data.0.name', 'Active Course');
+        ->assertJsonCount(1, 'data.data')
+        ->assertJsonPath('data.data.0.name', 'Active Course');
 });
 
 it('allows instructor to update their own course', function () {

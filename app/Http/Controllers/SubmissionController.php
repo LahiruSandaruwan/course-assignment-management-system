@@ -18,7 +18,7 @@ class SubmissionController extends Controller
     {
         $this->authorize('viewAny', [\App\Models\Submission::class, $assignment]);
 
-        $query = $assignment->submissions();
+        $query = $assignment->submissions()->with('student:id,name,email');
 
         return $this->success(
             \App\Http\Resources\SubmissionResource::collection($query->paginate(15))->response()->getData(true)

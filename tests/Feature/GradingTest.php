@@ -138,3 +138,28 @@ it('rejects negative score', function () {
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['score']);
 });
+
+it('accepts a score of exactly 0', function () {
+    $instructor = User::factory()->instructor()->create();
+    $student = User::factory()->student()->create();
+    $course = Course::factory()->create([
+        'instructor_id' => $instructor->id,
+    ]);
+    $course->students()->attach($student->id);
+    $assignment = Assignment::factory()->create([
+        'course_id' => $course->id,
+        'status' => AssignmentStatus::Published,
+        'max_score' => 100,
+    ]);
+    $submission = Submission::factory()->create([
+        'assignment_id' => $assignment->id,
+        'student_id' => $student->id,
+    ]);
+
+    $response = $this->actingAs($instructor)->putJson("/api/submissions/{$submission->id}/grade", [
+        'score' => 0,
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJsonPath('data.score', 0);
+});

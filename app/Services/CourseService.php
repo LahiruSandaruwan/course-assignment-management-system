@@ -13,24 +13,18 @@ class CourseService
     /**
      * Get courses accessible by the given user.
      */
-    public function getCoursesForUser(User $user): Collection
+    public function getCoursesForUser(User $user)
     {
-        if ($user->role === Role::Admin) {
-            return Course::with('instructor')->get();
-        }
+        $query = Course::with('instructor:id,name')
+            ->withCount(['students', 'assignments']);
 
         if ($user->role === Role::Instructor) {
-            return Course::with('instructor')
-                ->where('instructor_id', $user->id)
-                ->get();
+            $query->where('instructor_id', $user->id);
+        } elseif ($user->role === Role::Student) {
+            $query->where('status', CourseStatus::Active->value);
         }
 
-        // Students can only see active courses
-        // Note: they might also only see enrolled courses depending on requirements,
-        // but typically a student can browse active courses to enroll.
-        return Course::with('instructor')
-            ->where('status', CourseStatus::Active->value)
-            ->get();
+        return $query->paginate(15);
     }
 
     /**

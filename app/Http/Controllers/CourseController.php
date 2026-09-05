@@ -29,7 +29,7 @@ class CourseController extends Controller
 
         $courses = $this->courseService->getCoursesForUser($request->user());
 
-        return $this->success(CourseResource::collection($courses));
+        return $this->success(CourseResource::collection($courses)->response()->getData(true));
     }
 
     /**

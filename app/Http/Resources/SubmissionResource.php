@@ -18,6 +18,11 @@ class SubmissionResource extends JsonResource
             'id' => $this->id,
             'assignment_id' => $this->assignment_id,
             'student_id' => $this->student_id,
+            'student' => $this->whenLoaded('student', fn () => [
+                'id' => $this->student->id,
+                'name' => $this->student->name,
+                'email' => $this->student->email,
+            ]),
             'submission_text' => $this->submission_text,
             'submitted_at' => $this->submitted_at?->toISOString(),
             'status' => $this->status?->value ?? $this->status,
