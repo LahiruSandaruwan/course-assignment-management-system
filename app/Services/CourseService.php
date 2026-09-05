@@ -21,7 +21,12 @@ class CourseService
         if ($user->role === Role::Instructor) {
             $query->where('instructor_id', $user->id);
         } elseif ($user->role === Role::Student) {
-            $query->where('status', CourseStatus::Active->value);
+            // A student's list must match what CoursePolicy::view already
+            // enforces per-course: enrolled AND active. Filtering by status
+            // alone previously leaked every active course to every student,
+            // regardless of enrollment.
+            $query->where('status', CourseStatus::Active->value)
+                ->whereHas('students', fn ($q) => $q->where('users.id', $user->id));
         }
 
         return $query->paginate(15);

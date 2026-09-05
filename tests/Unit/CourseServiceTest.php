@@ -24,12 +24,26 @@ it('scopes the course list to only the instructors own courses', function () {
 it('scopes the course list to only active courses for a student', function () {
     $student = User::factory()->student()->create();
     $active = Course::factory()->create(['status' => CourseStatus::Active]);
-    Course::factory()->create(['status' => CourseStatus::Archived]);
+    $archived = Course::factory()->create(['status' => CourseStatus::Archived]);
+    $active->students()->attach($student->id);
+    $archived->students()->attach($student->id);
 
     $results = $this->service->getCoursesForUser($student);
 
     expect($results->total())->toBe(1)
         ->and($results->first()->id)->toBe($active->id);
+});
+
+it('excludes an active course the student is not enrolled in', function () {
+    $student = User::factory()->student()->create();
+    $enrolled = Course::factory()->create(['status' => CourseStatus::Active]);
+    Course::factory()->create(['status' => CourseStatus::Active]); // not enrolled
+    $enrolled->students()->attach($student->id);
+
+    $results = $this->service->getCoursesForUser($student);
+
+    expect($results->total())->toBe(1)
+        ->and($results->first()->id)->toBe($enrolled->id);
 });
 
 it('returns every course, active or archived, for an admin', function () {

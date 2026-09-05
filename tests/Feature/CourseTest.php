@@ -102,8 +102,8 @@ it('restricts instructor to view only their own courses', function () {
 it('restricts student to view only active courses', function () {
     $student = User::factory()->student()->create();
     $instructor = User::factory()->instructor()->create();
-    
-    Course::create([
+
+    $activeCourse = Course::create([
         'name' => 'Active Course',
         'instructor_id' => $instructor->id,
         'start_date' => '2025-01-01',
@@ -111,7 +111,7 @@ it('restricts student to view only active courses', function () {
         'status' => CourseStatus::Active->value,
     ]);
 
-    Course::create([
+    $archivedCourse = Course::create([
         'name' => 'Archived Course',
         'instructor_id' => $instructor->id,
         'start_date' => '2025-01-01',
@@ -119,11 +119,46 @@ it('restricts student to view only active courses', function () {
         'status' => CourseStatus::Archived->value,
     ]);
 
+    // Enrolled in both, to prove archived courses are excluded by status
+    // even when the student is a member of them.
+    $activeCourse->students()->attach($student->id);
+    $archivedCourse->students()->attach($student->id);
+
     $response = $this->actingAs($student)->getJson('/api/courses');
-    
+
     $response->assertStatus(200)
         ->assertJsonCount(1, 'data.data')
         ->assertJsonPath('data.data.0.name', 'Active Course');
+});
+
+it('prevents a student from seeing an active course they are not enrolled in', function () {
+    $student = User::factory()->student()->create();
+    $instructor = User::factory()->instructor()->create();
+
+    $enrolledCourse = Course::create([
+        'name' => 'Enrolled Active Course',
+        'instructor_id' => $instructor->id,
+        'start_date' => '2025-01-01',
+        'end_date' => '2025-12-31',
+        'status' => CourseStatus::Active->value,
+    ]);
+
+    // Active, but the student is never attached to it.
+    Course::create([
+        'name' => 'Unrelated Active Course',
+        'instructor_id' => $instructor->id,
+        'start_date' => '2025-01-01',
+        'end_date' => '2025-12-31',
+        'status' => CourseStatus::Active->value,
+    ]);
+
+    $enrolledCourse->students()->attach($student->id);
+
+    $response = $this->actingAs($student)->getJson('/api/courses');
+
+    $response->assertStatus(200)
+        ->assertJsonCount(1, 'data.data')
+        ->assertJsonPath('data.data.0.name', 'Enrolled Active Course');
 });
 
 it('allows instructor to update their own course', function () {
