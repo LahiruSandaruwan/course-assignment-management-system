@@ -3,6 +3,10 @@
     <span class="app-title">Course Assignment Management</span>
 
     <div class="user-info" v-if="authStore.user">
+      <nav class="main-nav">
+        <router-link to="/courses" class="nav-link">Courses</router-link>
+        <router-link v-if="authStore.user.role === 'admin'" to="/users" class="nav-link">Users</router-link>
+      </nav>
       <span class="user-name">{{ authStore.user.name }}</span>
       <span class="role-badge" :class="authStore.user.role">{{ roleLabel }}</span>
       <button class="logout-btn" @click="handleLogout">Logout</button>
@@ -61,6 +65,24 @@ onMounted(() => {
 .user-name {
   color: #374151;
   font-size: 0.875rem;
+}
+
+.main-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-right: 0.5rem;
+}
+
+.nav-link {
+  color: #3b82f6;
+  font-size: 0.875rem;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nav-link:hover {
+  text-decoration: underline;
 }
 
 .role-badge {
