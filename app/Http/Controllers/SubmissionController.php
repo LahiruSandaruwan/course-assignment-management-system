@@ -12,6 +12,25 @@ class SubmissionController extends Controller
     use \Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
     /**
+     * Display the authenticated student's own submission for the assignment.
+     */
+    public function mySubmission(\App\Models\Assignment $assignment)
+    {
+        // Must be a student and enrolled
+        if (request()->user()->role->value !== 'student' || !$assignment->course->students()->where('users.id', request()->user()->id)->exists()) {
+            return $this->error('Not authorized.', 403);
+        }
+
+        $submission = $assignment->submissions()->where('student_id', request()->user()->id)->first();
+
+        if (!$submission) {
+            return response()->json(null, 404);
+        }
+
+        return $this->success(new \App\Http\Resources\SubmissionResource($submission));
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request, \App\Models\Assignment $assignment)
