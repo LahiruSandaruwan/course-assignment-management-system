@@ -143,8 +143,14 @@ const fetchAssignmentDetails = async () => {
       await fetchMySubmission();
     }
   } catch (err) {
-    // Handling 403 naturally if user tries to bypass
-    error.value = err.response?.data?.message || 'Failed to load assignment.';
+    if (err.response?.status === 404) {
+      // Defense in depth: the backend already sends a clean message for a
+      // genuine 404, but never rely on that alone for user-facing text.
+      error.value = 'This assignment could not be found. It may have been removed.';
+    } else {
+      // Handling 403 naturally if user tries to bypass
+      error.value = err.response?.data?.message || 'Failed to load assignment.';
+    }
   } finally {
     isLoading.value = false;
   }

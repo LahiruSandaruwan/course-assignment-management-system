@@ -37,6 +37,13 @@ const routes = [
         component: () => import('../views/Submissions.vue'),
         meta: { requiresAuth: true, roles: ['admin', 'instructor'] }
     },
+    // Must stay last: this wildcard matches everything, including
+    // /assignments/ (no id) and any other unmatched URL.
+    {
+        path: '/:pathMatch(.*)*',
+        name: 'NotFound',
+        component: () => import('../views/NotFound.vue'),
+    },
 ];
 
 const router = createRouter({

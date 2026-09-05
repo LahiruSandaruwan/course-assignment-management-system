@@ -197,3 +197,74 @@ describe('CourseDetail.vue — student enrollment search', () => {
     expect(wrapper.text()).toContain('Student is already enrolled in this course.');
   });
 });
+
+describe('CourseDetail.vue — assignment list navigation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const mountWithAssignment = (assignment) => {
+    courseService.getCourse.mockResolvedValue({
+      data: {
+        data: {
+          id: 1,
+          name: 'Test Course',
+          status: 'active',
+          instructor_id: 2,
+          instructor_name: 'Some Instructor',
+          students_count: 0,
+          assignments_count: 1,
+          start_date: '2026-01-01',
+          end_date: '2026-02-01',
+        }
+      }
+    });
+    courseService.getAssignments.mockResolvedValue({
+      data: { data: { data: [assignment], meta: { current_page: 1, last_page: 1 } } }
+    });
+    courseService.getEnrolledStudents.mockResolvedValue({
+      data: { data: { data: [], meta: { current_page: 1, last_page: 1 } } }
+    });
+
+    const push = vi.fn();
+
+    const wrapper = mount(CourseDetail, {
+      global: {
+        plugins: [createTestingPinia({
+          createSpy: vi.fn,
+          initialState: { auth: { user: { id: 1, name: 'Admin User', role: 'admin' } } }
+        })],
+        stubs: { LoadingState: true, ErrorState: true },
+        mocks: { $router: { push } }
+      }
+    });
+
+    return { wrapper, push };
+  };
+
+  it('navigates to the named AssignmentDetail route with the assignment id when clicked', async () => {
+    const { wrapper, push } = mountWithAssignment({
+      id: 42,
+      title: 'Build a Fullstack App',
+      due_date: '2026-05-01T00:00:00Z',
+    });
+    await flushPromises();
+
+    await wrapper.find('.list-item.clickable').trigger('click');
+
+    expect(push).toHaveBeenCalledWith({ name: 'AssignmentDetail', params: { id: 42 } });
+  });
+
+  it('does not navigate when the assignment has no id', async () => {
+    const { wrapper, push } = mountWithAssignment({
+      id: null,
+      title: 'Broken row',
+      due_date: '2026-05-01T00:00:00Z',
+    });
+    await flushPromises();
+
+    await wrapper.find('.list-item.clickable').trigger('click');
+
+    expect(push).not.toHaveBeenCalled();
+  });
+});

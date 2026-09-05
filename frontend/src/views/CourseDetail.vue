@@ -93,7 +93,7 @@
                 v-for="assignment in assignments" 
                 :key="assignment.id" 
                 class="list-item clickable"
-                @click="$router.push(`/assignments/${assignment.id}`)"
+                @click="assignment.id && $router.push({ name: 'AssignmentDetail', params: { id: assignment.id } })"
               >
                 <div class="item-title">{{ assignment.title }}</div>
                 <div class="item-meta">Due: {{ new Date(assignment.due_date).toLocaleString() }}</div>
