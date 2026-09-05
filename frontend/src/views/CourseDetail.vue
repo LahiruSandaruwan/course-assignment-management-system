@@ -89,14 +89,23 @@
             <LoadingState v-if="isLoadingAssignments" message="Loading assignments..." />
             <ErrorState v-else-if="assignmentsError" :message="assignmentsError" :retry="fetchAssignments" />
             <div v-else-if="assignments.length > 0" class="list-group">
-              <div 
-                v-for="assignment in assignments" 
-                :key="assignment.id" 
-                class="list-item clickable"
+              <div
+                v-for="assignment in assignments"
+                :key="assignment.id"
+                class="list-item clickable assignment-item"
                 @click="assignment.id && $router.push({ name: 'AssignmentDetail', params: { id: assignment.id } })"
               >
-                <div class="item-title">{{ assignment.title }}</div>
-                <div class="item-meta">Due: {{ new Date(assignment.due_date).toLocaleString() }}</div>
+                <div>
+                  <div class="item-title">{{ assignment.title }}</div>
+                  <div class="item-meta">Due: {{ new Date(assignment.due_date).toLocaleString() }}</div>
+                </div>
+                <button
+                  v-if="canManage"
+                  class="view-submissions-link"
+                  @click.stop="assignment.id && $router.push({ name: 'Submissions', params: { id: courseId, assignmentId: assignment.id } })"
+                >
+                  Submissions
+                </button>
               </div>
               
               <!-- Pagination for assignments -->
@@ -863,11 +872,28 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 
-.student-item {
+.student-item,
+.assignment-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 0.75rem;
+}
+
+.view-submissions-link {
+  background-color: white;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.view-submissions-link:hover {
+  background-color: #eff6ff;
 }
 
 .remove-student-btn {

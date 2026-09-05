@@ -14,6 +14,10 @@
           <h1>{{ assignment.title }}</h1>
           <span class="status-badge" :class="assignment.status">{{ assignment.status }}</span>
         </div>
+
+        <div class="management-actions" v-if="isInstructorOrAdmin">
+          <button class="view-submissions-btn" @click="goToSubmissions">View Submissions</button>
+        </div>
       </div>
 
       <div class="assignment-meta">
@@ -131,6 +135,19 @@ const isStudent = computed(() => {
   return authStore.user && authStore.user.role === 'student';
 });
 
+const isInstructorOrAdmin = computed(() => {
+  return authStore.user && ['admin', 'instructor'].includes(authStore.user.role);
+});
+
+const goToSubmissions = () => {
+  if (!assignment.value) return;
+
+  router.push({
+    name: 'Submissions',
+    params: { id: assignment.value.course_id, assignmentId: assignmentId },
+  });
+};
+
 const fetchAssignmentDetails = async () => {
   isLoading.value = true;
   error.value = null;
@@ -231,9 +248,28 @@ onMounted(() => {
 }
 
 .assignment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid #e5e7eb;
+}
+
+.view-submissions-btn {
+  background-color: #3b82f6;
+  border: 1px solid #3b82f6;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.view-submissions-btn:hover {
+  background-color: #2563eb;
 }
 
 .header-content h1 {

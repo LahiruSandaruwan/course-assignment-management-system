@@ -5,12 +5,16 @@ import AssignmentDetail from './AssignmentDetail.vue';
 import { assignmentService } from '../services/assignmentService';
 import { submissionService } from '../services/submissionService';
 
+const mockPush = vi.fn();
+const mockBack = vi.fn();
+
 vi.mock('vue-router', () => ({
   useRoute: () => ({
     params: { id: 1 }
   }),
   useRouter: () => ({
-    back: vi.fn(),
+    back: mockBack,
+    push: mockPush,
   }),
 }));
 
@@ -32,13 +36,13 @@ describe('AssignmentDetail.vue', () => {
     vi.clearAllMocks();
   });
 
-  const getWrapper = (role = 'student', assignmentStatus = 'published', hasSubmission = false) => {
+  const getWrapper = (role = 'student', assignmentStatus = 'published', hasSubmission = false, courseId = 1) => {
     assignmentService.getAssignment.mockResolvedValueOnce({
       data: {
         data: {
           id: 1,
           title: 'Test Assignment',
-          course_id: 1,
+          course_id: courseId,
           due_date: '2026-10-01T00:00:00Z',
           max_score: 100,
           status: assignmentStatus
@@ -150,5 +154,35 @@ describe('AssignmentDetail.vue', () => {
     await flushPromises();
 
     expect(wrapper.find('.submission-section').exists()).toBe(false);
+  });
+
+  it('shows a View Submissions button for instructors and navigates to the submissions route', async () => {
+    const wrapper = getWrapper('instructor', 'published', false, 99);
+    await flushPromises();
+
+    const button = wrapper.find('.view-submissions-btn');
+    expect(button.exists()).toBe(true);
+
+    await button.trigger('click');
+
+    // course id (99) comes from the loaded assignment, assignmentId (1) from the route
+    expect(mockPush).toHaveBeenCalledWith({
+      name: 'Submissions',
+      params: { id: 99, assignmentId: 1 },
+    });
+  });
+
+  it('shows a View Submissions button for admins', async () => {
+    const wrapper = getWrapper('admin', 'published', false, 99);
+    await flushPromises();
+
+    expect(wrapper.find('.view-submissions-btn').exists()).toBe(true);
+  });
+
+  it('does not show the View Submissions button for students', async () => {
+    const wrapper = getWrapper('student', 'published', false);
+    await flushPromises();
+
+    expect(wrapper.find('.view-submissions-btn').exists()).toBe(false);
   });
 });

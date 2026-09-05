@@ -267,4 +267,21 @@ describe('CourseDetail.vue — assignment list navigation', () => {
 
     expect(push).not.toHaveBeenCalled();
   });
+
+  it('shows a Submissions quick link for admins/instructors that navigates to the Submissions route without triggering the row click', async () => {
+    const { wrapper, push } = mountWithAssignment({
+      id: 42,
+      title: 'Build a Fullstack App',
+      due_date: '2026-05-01T00:00:00Z',
+    });
+    await flushPromises();
+
+    const link = wrapper.find('.view-submissions-link');
+    expect(link.exists()).toBe(true);
+
+    await link.trigger('click');
+
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith({ name: 'Submissions', params: { id: 1, assignmentId: 42 } });
+  });
 });
