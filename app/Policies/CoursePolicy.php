@@ -21,7 +21,19 @@ class CoursePolicy
      */
     public function view(User $user, Course $course): bool
     {
-        return true;
+        if ($user->role === \App\Enums\Role::Admin) {
+            return true;
+        }
+
+        if ($user->role === \App\Enums\Role::Instructor) {
+            return $user->id === $course->instructor_id;
+        }
+
+        if ($user->role === \App\Enums\Role::Student) {
+            return $course->students()->where('users.id', $user->id)->exists();
+        }
+
+        return false;
     }
 
     /**

@@ -57,8 +57,12 @@ class SubmissionPolicy
             if ($assignment->status !== \App\Enums\AssignmentStatus::Published) {
                 return false;
             }
+            // Course must be active (not archived)
+            if ($assignment->course->status !== \App\Enums\CourseStatus::Active) {
+                return false;
+            }
             // Must be enrolled
-            return $assignment->course->students()->where('user_id', $user->id)->exists();
+            return $assignment->course->students()->where('users.id', $user->id)->exists();
         }
 
         return false;

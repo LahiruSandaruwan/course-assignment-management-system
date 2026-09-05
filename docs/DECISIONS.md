@@ -17,3 +17,10 @@ Due to local environment constraints (Node v18.19.1 vs npm v9 compatibility issu
 
 ### Backend: Enrolled Students Roster Privacy
 Only instructors (owning the course) and admins can view the full enrolled-students roster (`GET /api/courses/{course}/students`). Students see their enrollment status and the course's `students_count` but not their classmates' identities. This provides basic privacy and is a deliberate architectural choice via the `CoursePolicy`.
+
+## Phase 9 - Re-Grading Policy
+Instructors are intentionally allowed to re-grade an already-graded submission to correct mistakes. The `SubmissionPolicy::grade` and `GradingService::grade` do not block this. Re-grading will re-dispatch the `SubmissionGraded` event, which may cause a duplicate notification to the student, but this is an acceptable side effect for the scope of this project.
+
+## Phase 10 - Archived Course Business Rules
+1. **Visibility**: Enrolled students, the owning instructor, and admins can view an archived course and its historical assignments. The course is locked but not hidden from legitimate participants.
+2. **Submission**: Students are blocked from submitting any new or updated assignments to an archived course. The course is considered read-only.
