@@ -70,7 +70,8 @@ const handleLogin = async () => {
                 <span v-if="errors.password" class="error-text">{{ errors.password[0] }}</span>
             </div>
 
-            <button type="submit" :disabled="isLoading">
+            <button type="submit" :disabled="isLoading" class="submit-btn">
+                <span v-if="isLoading" class="spinner" aria-hidden="true"></span>
                 {{ isLoading ? 'Signing in...' : 'Sign In' }}
             </button>
         </form>
@@ -83,16 +84,19 @@ const handleLogin = async () => {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    padding: 1.5rem;
+    box-sizing: border-box;
     background-color: #f3f4f6;
 }
 
 .login-form {
     background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    padding: 2.5rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     width: 100%;
     max-width: 400px;
+    box-sizing: border-box;
 }
 
 h2 {
@@ -149,25 +153,42 @@ input.is-invalid {
     font-size: 0.875rem;
 }
 
-button {
+.submit-btn {
     width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
     padding: 0.75rem;
     background-color: #3b82f6;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s;
 }
 
-button:hover:not(:disabled) {
+.submit-btn:hover:not(:disabled) {
     background-color: #2563eb;
 }
 
-button:disabled {
+.submit-btn:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+}
+
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 </style>

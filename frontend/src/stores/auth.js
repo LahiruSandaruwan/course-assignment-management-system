@@ -29,12 +29,14 @@ export const useAuthStore = defineStore('auth', {
         async login(credentials) {
             try {
                 const response = await authService.login(credentials);
-                const { access_token, user } = response.data;
-                
-                this.setToken(access_token);
+                // The API wraps every payload as { message, data: {...} } —
+                // login's data is { user, token }, not top-level fields.
+                const { user, token } = response.data.data;
+
+                this.setToken(token);
                 this.user = user;
-                
-                return response.data;
+
+                return response.data.data;
             } catch (error) {
                 this.clearAuth();
                 throw error;
@@ -55,10 +57,10 @@ export const useAuthStore = defineStore('auth', {
         
         async fetchCurrentUser() {
             if (!this.token) return null;
-            
+
             try {
                 const response = await authService.me();
-                this.user = response.data;
+                this.user = response.data.data.user;
                 return this.user;
             } catch (error) {
                 // Interceptor will handle 401

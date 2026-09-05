@@ -37,13 +37,18 @@ describe('Auth Store', () => {
 
   it('logs in successfully and sets token in state and localStorage', async () => {
     const store = useAuthStore();
+    // Matches the real API contract: every response is wrapped as
+    // { message, data: {...} } by the backend's ApiResponses trait.
     const mockResponse = {
       data: {
-        access_token: 'new-token',
-        user: { id: 1, name: 'Test User' }
+        message: 'Logged in successfully',
+        data: {
+          token: 'new-token',
+          user: { id: 1, name: 'Test User' }
+        }
       }
     };
-    
+
     authService.login.mockResolvedValueOnce(mockResponse);
 
     const result = await store.login({ email: 'test@example.com', password: 'password' });
@@ -53,7 +58,7 @@ describe('Auth Store', () => {
     expect(store.user).toEqual({ id: 1, name: 'Test User' });
     expect(store.isAuthenticated).toBe(true);
     expect(localStorage.getItem('auth_token')).toBe('new-token');
-    expect(result).toEqual(mockResponse.data);
+    expect(result).toEqual(mockResponse.data.data);
   });
 
   it('clears auth state on login failure', async () => {
@@ -70,6 +75,23 @@ describe('Auth Store', () => {
     expect(store.user).toBeNull();
     expect(store.isAuthenticated).toBe(false);
     expect(localStorage.getItem('auth_token')).toBeNull();
+  });
+
+  it('fetches the current user and unwraps the { message, data: { user } } response', async () => {
+    const store = useAuthStore();
+    store.token = 'existing-token';
+
+    authService.me.mockResolvedValueOnce({
+      data: {
+        message: null,
+        data: { user: { id: 1, name: 'Test User', role: 'student' } }
+      }
+    });
+
+    const user = await store.fetchCurrentUser();
+
+    expect(user).toEqual({ id: 1, name: 'Test User', role: 'student' });
+    expect(store.user).toEqual({ id: 1, name: 'Test User', role: 'student' });
   });
 
   it('logs out successfully and clears state', async () => {
