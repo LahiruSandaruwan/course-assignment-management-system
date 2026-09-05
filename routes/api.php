@@ -11,6 +11,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/students/search', [\App\Http\Controllers\StudentSearchController::class, 'index']);
 
+    Route::apiResource('users', \App\Http\Controllers\UserController::class)->except(['show']);
+
     Route::apiResource('courses', CourseController::class);
     
     // Enrollment routes
