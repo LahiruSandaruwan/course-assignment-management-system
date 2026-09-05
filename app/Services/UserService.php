@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\Course;
+use App\Models\Submission;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class UserService
@@ -49,6 +52,18 @@ class UserService
     {
         if ($user->id === $actingUser->id) {
             throw new UnprocessableEntityHttpException('You cannot delete your own account.');
+        }
+
+        if (Course::where('instructor_id', $user->id)->exists()) {
+            throw ValidationException::withMessages([
+                'user' => ['This user is assigned as instructor on one or more courses and cannot be deleted. Reassign or delete those courses first.'],
+            ]);
+        }
+
+        if (Submission::where('student_id', $user->id)->exists()) {
+            throw ValidationException::withMessages([
+                'user' => ['This user has submission records and cannot be deleted.'],
+            ]);
         }
 
         return $user->delete();

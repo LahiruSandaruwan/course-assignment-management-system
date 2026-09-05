@@ -149,3 +149,35 @@ it('prevents instructor and student from deleting users', function () {
     $this->actingAs($instructor)->deleteJson("/api/users/{$target->id}")->assertStatus(403);
     $this->actingAs($student)->deleteJson("/api/users/{$target->id}")->assertStatus(403);
 });
+
+it('prevents deleting an instructor who is assigned to a course', function () {
+    $admin = User::factory()->admin()->create();
+    $instructor = User::factory()->instructor()->create();
+    \App\Models\Course::factory()->create(['instructor_id' => $instructor->id]);
+
+    $response = $this->actingAs($admin)->deleteJson("/api/users/{$instructor->id}");
+
+    $response->assertStatus(422)->assertJsonValidationErrors(['user']);
+    $this->assertDatabaseHas('users', ['id' => $instructor->id]);
+});
+
+it('prevents deleting a student who has a submission', function () {
+    $admin = User::factory()->admin()->create();
+    $student = User::factory()->student()->create();
+    \App\Models\Submission::factory()->create(['student_id' => $student->id]);
+
+    $response = $this->actingAs($admin)->deleteJson("/api/users/{$student->id}");
+
+    $response->assertStatus(422)->assertJsonValidationErrors(['user']);
+    $this->assertDatabaseHas('users', ['id' => $student->id]);
+});
+
+it('blocks deleting an instructor with a course at the database level, independent of the app guard', function () {
+    $instructor = User::factory()->instructor()->create();
+    \App\Models\Course::factory()->create(['instructor_id' => $instructor->id]);
+
+    expect(fn () => \Illuminate\Support\Facades\DB::table('users')->where('id', $instructor->id)->delete())
+        ->toThrow(\Illuminate\Database\QueryException::class);
+
+    $this->assertDatabaseHas('users', ['id' => $instructor->id]);
+});
