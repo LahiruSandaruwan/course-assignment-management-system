@@ -99,15 +99,50 @@
 
           <!-- Students Section -->
           <div class="section">
-            <h3>Enrolled Students ({{ course.students_count || 0 }})</h3>
+            <div class="section-header">
+              <h3>Enrolled Students ({{ course.students_count || 0 }})</h3>
+              <button v-if="canManage" class="enroll-toggle-btn" @click="showEnrollForm = !showEnrollForm">
+                {{ showEnrollForm ? 'Cancel' : '+ Enroll Student' }}
+              </button>
+            </div>
+
+            <form v-if="canManage && showEnrollForm" class="enroll-form" @submit.prevent="handleEnroll">
+              <div v-if="enrollError" class="error-alert">{{ enrollError }}</div>
+              <label for="enroll-user-id">Student User ID</label>
+              <div class="enroll-form-row">
+                <input
+                  id="enroll-user-id"
+                  type="number"
+                  min="1"
+                  v-model="enrollUserId"
+                  placeholder="e.g. 3"
+                  required
+                  :disabled="isEnrolling"
+                />
+                <button type="submit" :disabled="isEnrolling">
+                  {{ isEnrolling ? 'Enrolling...' : 'Enroll' }}
+                </button>
+              </div>
+            </form>
+
             <LoadingState v-if="isLoadingStudents" message="Loading students..." />
             <ErrorState v-else-if="studentsError" :message="studentsError" :retry="fetchStudents" />
             <div v-else-if="students.length > 0" class="list-group">
-              <div v-for="student in students" :key="student.id" class="list-item">
-                <div class="item-title">{{ student.name }}</div>
-                <div class="item-meta">{{ student.email }}</div>
+              <div v-for="student in students" :key="student.id" class="list-item student-item">
+                <div>
+                  <div class="item-title">{{ student.name }}</div>
+                  <div class="item-meta">{{ student.email }}</div>
+                </div>
+                <button
+                  v-if="canManage"
+                  class="remove-student-btn"
+                  :disabled="isRemoving[student.id]"
+                  @click="handleRemoveStudent(student)"
+                >
+                  {{ isRemoving[student.id] ? 'Removing...' : 'Remove' }}
+                </button>
               </div>
-              
+
               <!-- Pagination for students -->
               <div class="pagination" v-if="studentsTotalPages > 1">
                 <button :disabled="studentsPage === 1" @click="fetchStudents(studentsPage - 1)">Prev</button>
@@ -291,6 +326,58 @@ const archiveCourse = async () => {
     archiveError.value = err.response?.data?.message || 'Failed to archive course.';
   } finally {
     isArchiving.value = false;
+  }
+};
+
+// Enrollment management (Admin/Instructor only)
+const showEnrollForm = ref(false);
+const enrollUserId = ref('');
+const isEnrolling = ref(false);
+const enrollError = ref(null);
+const isRemoving = reactive({});
+
+const refreshCourse = async () => {
+  try {
+    const response = await courseService.getCourse(courseId);
+    course.value = response.data.data;
+  } catch (err) {
+    // Non-critical: the header counts may be briefly stale.
+  }
+};
+
+const handleEnroll = async () => {
+  if (isEnrolling.value) return;
+  isEnrolling.value = true;
+  enrollError.value = null;
+
+  try {
+    await courseService.enrollStudent(courseId, enrollUserId.value);
+    enrollUserId.value = '';
+    showEnrollForm.value = false;
+    await Promise.all([refreshCourse(), fetchStudents(studentsPage.value)]);
+  } catch (err) {
+    const validationErrors = err.response?.data?.errors;
+    enrollError.value = validationErrors?.user_id?.[0]
+      || err.response?.data?.message
+      || 'Failed to enroll student.';
+  } finally {
+    isEnrolling.value = false;
+  }
+};
+
+const handleRemoveStudent = async (student) => {
+  if (isRemoving[student.id]) return;
+  if (!window.confirm(`Remove ${student.name} from this course?`)) return;
+
+  isRemoving[student.id] = true;
+
+  try {
+    await courseService.removeStudent(courseId, student.id);
+    await Promise.all([refreshCourse(), fetchStudents(studentsPage.value)]);
+  } catch (err) {
+    studentsError.value = err.response?.data?.message || 'Failed to remove student.';
+  } finally {
+    isRemoving[student.id] = false;
   }
 };
 
@@ -503,6 +590,109 @@ onMounted(() => {
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid #e5e7eb;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+}
+
+.section-header h3 {
+  margin: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.enroll-toggle-btn {
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.enroll-toggle-btn:hover {
+  background-color: #dbeafe;
+}
+
+.enroll-form {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.enroll-form label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.375rem;
+}
+
+.enroll-form-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.enroll-form-row input {
+  flex: 1;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.enroll-form-row button {
+  background-color: #3b82f6;
+  border: none;
+  color: white;
+  padding: 0.4rem 0.9rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.enroll-form-row button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.student-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.remove-student-btn {
+  background-color: white;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.remove-student-btn:hover:not(:disabled) {
+  background-color: #fee2e2;
+}
+
+.remove-student-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .list-group {

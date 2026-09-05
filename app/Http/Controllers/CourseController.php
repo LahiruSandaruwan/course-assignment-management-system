@@ -51,7 +51,7 @@ class CourseController extends Controller
     {
         $this->authorize('view', $course);
 
-        $course->load('instructor');
+        $course->load('instructor')->loadCount(['students', 'assignments']);
 
         return $this->success(new CourseResource($course));
     }
@@ -64,6 +64,8 @@ class CourseController extends Controller
         $this->authorize('update', $course);
 
         $this->courseService->updateCourse($course, $request->validated());
+
+        $course->load('instructor')->loadCount(['students', 'assignments']);
 
         return $this->success(new CourseResource($course), 'Course updated successfully');
     }

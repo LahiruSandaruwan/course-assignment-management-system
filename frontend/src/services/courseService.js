@@ -21,5 +21,11 @@ export const courseService = {
     },
     getAssignments(courseId, page = 1) {
         return api.get(`/courses/${courseId}/assignments?page=${page}`);
+    },
+    enrollStudent(courseId, userId) {
+        return api.post(`/courses/${courseId}/students`, { user_id: userId });
+    },
+    removeStudent(courseId, studentId) {
+        return api.delete(`/courses/${courseId}/students/${studentId}`);
     }
 };
